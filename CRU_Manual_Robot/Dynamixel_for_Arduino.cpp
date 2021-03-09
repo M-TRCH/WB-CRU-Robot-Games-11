@@ -63,10 +63,10 @@ void DX::rotate(int16_t spd) /* control motor rotation */
     { /* sending to data package */
       serial_use->write(packet[i]);
       checksum += packet[i];
-      delay(1);
+      // delay(1);
     }
     serial_use->write(~checksum&0xFF); // ending to summation check 
-    delay(1);
+    // delay(1);
   }
 }
 /*---------------------------------------- for joint mode ---------------------------------------*/

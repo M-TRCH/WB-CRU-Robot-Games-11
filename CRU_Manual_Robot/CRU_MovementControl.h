@@ -13,5 +13,5 @@ void holonomic_init() /* holonomic movement initial */
 void drive(uint16_t velocity, uint16_t theta, int16_t omega) /* movement control for easy use */
 {
   mecanum.GetfourwheelSPD(velocity, theta, omega);
-  four_wheel_drive(mecanum.GetSpd(0), mecanum.GetSpd(1), mecanum.GetSpd(2), mecanum.GetSpd(3));
+  four_wheel_drive(mecanum.GetSpd(2), mecanum.GetSpd(3), mecanum.GetSpd(0), mecanum.GetSpd(1));
 }

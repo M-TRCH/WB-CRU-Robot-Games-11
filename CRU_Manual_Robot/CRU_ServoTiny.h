@@ -4,7 +4,7 @@
 #define _CRU_SERVOTINY_H_
 /*-------------------------------------- parameter setting --------------------------------------*/
 #define HAND_MAX_POS_SAFE 145 // max degree of hand
-#define HAND_MIN_POS_SAFE 30  // min degree of hand
+#define HAND_MIN_POS_SAFE 0  // min degree of hand
 #define FREQ_DRIVE 50         // normal pwm frequency of servo control
 #define ADDRESS 0x40          // address to 16ch servo drive board
 #define MAX_PULSE 600         // factory default
@@ -20,11 +20,11 @@ void servo_init() /* servo initialize */
 void servoWrite(uint8_t no, uint8_t deg) /* write and safety servo function */ 
 {
   deg = constrain(deg, HAND_MIN_POS_SAFE, HAND_MAX_POS_SAFE);
-
-       if(no == 1) no = 0; //                                       //
-  else if(no == 2) no = 3; // convert to according normal positions //
-  else if(no == 3) no = 1; //                                       //
-  else if(no == 4) no = 2; //                                       //
+  
+       if(no == 1) no = 1; //                                       //
+  else if(no == 2) no = 13; // convert to according normal positions //
+  else if(no == 3) no = 15; //                                       //
+  else if(no == 4) no = 99; //                                       //
   uint16_t period = map(deg, 0, 180, MIN_PULSE, MAX_PULSE);
   servo.setPWM(no, 0, period); // in one cycle 
 }

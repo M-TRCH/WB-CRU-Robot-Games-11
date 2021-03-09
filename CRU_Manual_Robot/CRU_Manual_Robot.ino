@@ -1,6 +1,6 @@
 #include "CRU_MotorControl.h"
 #include "CRU_MovementControl.h"
-// #include "CRU_GyroFlawless.h"
+#include "CRU_GyroFlawless.h"
 #include "CRU_JoyReader.h"
 #include "CRU_ServoTiny.h"
 
@@ -14,7 +14,8 @@
 /*------------------------------------------- SYSTEM -------------------------------------------*/
 #define HARDSERIAL_BAUD 9600 // default monitor baudrate
 #define DEBUG_MODE           // debug mode enable
-#define RESET_PIN 3          // reset switch take interrupt pin
+#define RSW_PIN 2            // rigth switch take enter pin
+#define LSW_PIN 3            // left switch take interrupt pin
 
 void(*resetFunc)(void) = 0; /* reset all function */
 void resetEvent() /* command when arduino reset */
@@ -23,10 +24,10 @@ void resetEvent() /* command when arduino reset */
 }
 void softReset() /* debounce switch , interrupt function */
 {
-  if(digitalRead(RESET_PIN) == LOW)
+  if(digitalRead(RSW_PIN) == LOW)
   {
     delayMicroseconds(500);
-    if(digitalRead(RESET_PIN) == LOW)
+    if(digitalRead(RSW_PIN) == LOW)
     {
       resetEvent();
       resetFunc();  
@@ -43,11 +44,12 @@ void system_init()
   delay(1000);  
   Serial.println("robot status : prepairing");  
   ///////////////////////////////////////
-  pinMode(RESET_PIN, INPUT_PULLUP);
+  pinMode(RSW_PIN, INPUT);
+  pinMode(LSW_PIN, INPUT);
   // while(digitalRead(3));
   
   delay(1000);
-  attachInterrupt(digitalPinToInterrupt(RESET_PIN), softReset, CHANGE);
+  // attachInterrupt(digitalPinToInterrupt(RESET_PIN), softReset, CHANGE);
   //////////////////////////////////////
   Serial.println("robot status : started");  
 }
@@ -55,15 +57,18 @@ void system_init()
 #ifdef _CRU_SERVOTINY_H_
 uint8_t arm_number = 0;                              // number of arm (1-4)
 float Deg_rotArm[5]  = {0, -570, -570, -570, -570};  // degree of each arm (MIN_SAFE-MAX_SAFE) 
-float Deg_rotHand[5] = {0,   60,   60,   60,   60};  // degree of each hand (MIN_SAFE-MAX_SAFE) 
+float Deg_rotHand[5] = {0,   20,   20,   20,   20};  // degree of each hand (MIN_SAFE-MAX_SAFE) 
 #define ARM_SPD 2                                    // dynamixel motor speed for arm
-#define ARM_SPD_RESOLUTION  5.5                      // resolution of degree per times (arm)
+#define ARM_SPD_RESOLUTION  1.3                      // resolution of degree per times (arm)
 #define HAND_SPD_RESOLUTION 3.8                      // resolution of degree per times (hand)
 #define PRESS_DELAY 150                              // wait for unpress button  
 boolean armEvent  = false,                           // condition for arm working
         handEvent = false,                           // condition for hand working
         armState  = true,                            // up and down swiching variable
-        handState = true;                            // "---------------------------"
+        handState = true,                            // "---------------------------"
+        safetyEvent = false;                         // special event for hand degree safety
+#define Add_Deg_safetyHand 20                        // sum value of referent degree "(min+max)/2)" with me 
+int16_t Deg_safetyHand = ((JOINT_MIN_POS_SAFE+JOINT_MAX_POS_SAFE)/2)-Add_Deg_safetyHand; // middle position of arm
         
 void joint_select() /* arm number selection */
 {       
@@ -74,13 +79,13 @@ void joint_select() /* arm number selection */
 }
 void arm_control() /* arm control part */
 {
-  if(press(KEY_F10)) 
+  if(press(KEY_TAP)) 
   { /* lift up the robot arm */
     Deg_rotArm[arm_number] += ARM_SPD_RESOLUTION; 
     Deg_rotArm[arm_number] = constrain(Deg_rotArm[arm_number], JOINT_MIN_POS_SAFE, JOINT_MAX_POS_SAFE);
     armEvent = true;
   }
-  else if(press(KEY_0))
+  else if(press(KEY_CAPS))
   { /* lift down the robot arm */
     Deg_rotArm[arm_number] -= ARM_SPD_RESOLUTION; 
     Deg_rotArm[arm_number] = constrain(Deg_rotArm[arm_number], JOINT_MIN_POS_SAFE, JOINT_MAX_POS_SAFE);
@@ -95,18 +100,34 @@ void arm_control() /* arm control part */
     armEvent = true;
     armState = !armState; // switth lift up to lift down and lift down to lift up
   }
+  else if(press(KEY_F3))
+  { /* hotkey function to set max lift up and down */
+    while(press(KEY_F3));
+    // delay(PRESS_DELAY);
+    
+    Deg_rotArm[arm_number] = JOINT_MIN_POS_SAFE;
+    armEvent = true;
+  }
   if(armEvent)
   { /* activated when command */
 //    Serial.print("ARM[");
 //    Serial.print(arm_number);
 //    Serial.print("]: ");
 //    Serial.println(Deg_rotArm[arm_number]); // {SERIAL_ACTIVED}
-
+      
          if(arm_number == 1){ LL_joint.rotate(ARM_SPD, int(Deg_rotArm[arm_number])); }
     else if(arm_number == 2){ LM_joint.rotate(ARM_SPD, int(Deg_rotArm[arm_number])); }
     else if(arm_number == 3){ RM_joint.rotate(ARM_SPD, int(Deg_rotArm[arm_number])); }
     else if(arm_number == 4){ RR_joint.rotate(ARM_SPD, int(Deg_rotArm[arm_number])); }
     armEvent = false;
+
+    /* safety event when arm go to home */
+    if(int(Deg_rotArm[arm_number]) < Deg_safetyHand) 
+    {
+      Deg_rotHand[arm_number] = HAND_MIN_POS_SAFE;
+      handEvent = true;
+      safetyEvent = true;
+    }
   }
 }
 void hand_control() /* hand control part */
@@ -127,6 +148,7 @@ void hand_control() /* hand control part */
   {  /* hotkey function to set max lift up */
     while(press(KEY_F2));
     // delay(PRESS_DELAY);
+    
     if(handState) Deg_rotHand[arm_number] = HAND_MIN_POS_SAFE;
     else          Deg_rotHand[arm_number] = HAND_MAX_POS_SAFE; 
     handEvent = true;
@@ -139,22 +161,28 @@ void hand_control() /* hand control part */
 //    Serial.print("]: ");
 //    Serial.println(Deg_rotHand[arm_number]); // {SERIAL_ACTIVED}
     
-    servoWrite(arm_number, int(Deg_rotHand[arm_number])); 
+    if(int(Deg_rotArm[arm_number]) > Deg_safetyHand || safetyEvent) 
+    { // command denied while hand at home 
+      servoWrite(arm_number, int(Deg_rotHand[arm_number]));
+      safetyEvent = false;
+    }
     handEvent = false;
   }
 }
 #endif
 /*-------------------------------------- DRIVE MOVEMENT  ---------------------------------------*/
 #ifdef _CRU_MOTORCONTROL_H_
-#define Kp 25               // kp gain
-#define NORMAL_SPD     1000 // forward and backward speed
+#define Kp 12               // kp gain
+#define NORMAL_SPD      800 // forward and backward speed
 #define NORMAL_DROP_SPD  50 // forward and backward drop speed
-#define TURN_SPD        150 // turn right and turn left speed
-#define TURN_DROP_SPD    50 // turn right and turn left drop speed
-#define SLIDE_SPD       800 // slide right and slide left speed
+#define TURN_CURVE_SPD  500 // turn right and turn left while curve move
+#define TURN_SPD        100 // turn right and turn left speed
+#define TURN_DROP_SPD    50 // turn right and turn left while drop speed
+#define SLIDE_SPD       500 // slide right and slide left speed
 #define SLIDE_DROP_SPD   50 // slide right and slide left drop speed
 boolean dropState = false,  // condition for drop each speed
-        moveEvent = false;  // condition for movement working
+        moveEvent = false,  // condition for movement working
+        closeLoop = false;  // close loop movement mode 
         
 void drive_setting() /* movement setting */  
 {
@@ -163,21 +191,27 @@ void drive_setting() /* movement setting */
     while(press(KEY_OK));
     dropState = !dropState;
   }
+  if(press(KEY_SPACE))
+  { /* speed speed */
+    while(press(KEY_SPACE));
+    closeLoop = !closeLoop;
+  }
 }
 void drive_control() /* vector speed and heading control */
 {
-  float cps = 0; // -getYaw()*Kp;  // compensate value 
+  float cps = closeLoop ? -getYaw()*Kp : 0; // compensate value 
+  // Serial.println(cps); // {SERIAL_ACTIVED}
   uint16_t vector = 0, // robot vector value
            speed_ = 0; // robot speed value
   
   if(press(KEY_W))
   { /* turn rigth */
-    cps = dropState ? TURN_DROP_SPD : TURN_SPD;
+    cps = dropState ? TURN_DROP_SPD : TURN_CURVE_SPD;
     moveEvent = true;
   }
   else if(press(KEY_Q))
   { /* turn left */
-    cps = dropState ? -TURN_DROP_SPD : -TURN_SPD;
+    cps = dropState ? -TURN_DROP_SPD : -TURN_CURVE_SPD;
     moveEvent = true;
   }
 ///////////////////////////////////////////////////////
@@ -208,12 +242,24 @@ void drive_control() /* vector speed and heading control */
 ///////////////////////////////////////////////////////  
   if(moveEvent)
   {
+    if(speed_ == 0 && abs(cps) != TURN_DROP_SPD)
+    {// speed select when stop or run
+           if(cps > 0) cps =  TURN_SPD;  
+      else if(cps < 0) cps = -TURN_SPD;
+    }
+     
     drive(speed_, vector, cps);
     moveEvent = false;
+//    Serial.print(speed_); //{SERIAL_ACTIVED}
+//    Serial.print("\t");
+//    Serial.print(vector);
+//    Serial.print("\t");
+//    Serial.println(cps);
   }
   else
   { /* stop */
-    drive(0, 0, 0);
+    // cps = dropState ? TURN_DROP_SPD : TURN_SPD;
+    drive(0, 0, cps);
   }
 }
 #endif
@@ -249,6 +295,21 @@ void loop()
     drive_setting();
     drive_control();
   #endif
+
+//  FL_drive.rotate(100); delay(1000);
+//  FR_drive.rotate(100); delay(1000);
+//  BL_drive.rotate(100); delay(1000);
+//  BR_drive.rotate(100); delay(1000);
+  
+// Serial.println(getYaw());
+// getYaw();
+// Serial.println(digitalRead(5));
+// Serial.println(pulseIn(5, HIGH, 10000));
+    
+//       if(!digitalRead(RSW_PIN)) drive(80, 90 , 0);
+//  else if(!digitalRead(LSW_PIN)) drive(80, 270, 0);
+//  else drive(0, 0, 0);
+
 }
 
 

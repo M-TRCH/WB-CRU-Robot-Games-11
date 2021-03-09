@@ -14,22 +14,22 @@ DX RM_joint;
 DX LM_joint;
 DX LL_joint;
 /* motor ID */
-#define FR_DRIVE_ID 1
-#define FL_DRIVE_ID 2
-#define BR_DRIVE_ID 3
+#define FR_DRIVE_ID 2
+#define FL_DRIVE_ID 3
+#define BR_DRIVE_ID 1
 #define BL_DRIVE_ID 4
-#define RR_JOINT_ID 14
-#define RM_JOINT_ID 13
+#define RR_JOINT_ID 99   
+#define RM_JOINT_ID 11   
 #define LM_JOINT_ID 12
-#define LL_JOINT_ID 11
+#define LL_JOINT_ID 14
 /* wheel mode parameter */
 #define DRIVE_SPD_RANGE 1000
 /* joint mode parameter */
 #define JOINT_SPD_RANGE 10
 #define JOINT_MAX_POS_RANGE  600
 #define JOINT_MIN_POS_RANGE -600
-#define JOINT_MAX_POS_SAFE  -405
-#define JOINT_MIN_POS_SAFE  -580
+#define JOINT_MAX_POS_SAFE  -365 // arm down
+#define JOINT_MIN_POS_SAFE  -540 // arm up
 /*-----------------------------------------------------------------------------------------------*/
                                          
 void dynamixel_init() /* dymanixel motor initial (include setSpeed setSafeDeg setMode .. ) */

@@ -20,10 +20,10 @@ void holonomic::GetfourwheelSPD(float velocity, float heading, float omega) /* f
     const float cos_theta = cos(heading);
     const float sin_theta = sin(heading);
     
-    first_spd  = (velocity * (cos_theta*-root2divide2 + sin_theta*-root2divide2)) - omega;
-    second_spd = (velocity * (cos_theta*-root2divide2 + sin_theta* root2divide2)) - omega;
-    third_spd  = (velocity * (cos_theta* root2divide2 + sin_theta* root2divide2)) - omega;
-    fourth_spd = (velocity * (cos_theta* root2divide2 + sin_theta*-root2divide2)) - omega;
+    first_spd  = (velocity * (cos_theta* root2divide2 + sin_theta*-root2divide2)) - omega;
+    second_spd = (velocity * (cos_theta* root2divide2 + sin_theta* root2divide2)) - omega;
+    third_spd  = (velocity * (cos_theta*-root2divide2 + sin_theta*-root2divide2)) - omega;
+    fourth_spd = (velocity * (cos_theta*-root2divide2 + sin_theta* root2divide2)) - omega;
   }
 }
 float holonomic::GetSpd(uint8_t no) /* get the speed of each wheel */
