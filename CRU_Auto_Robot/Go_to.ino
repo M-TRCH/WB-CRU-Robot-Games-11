@@ -1,4 +1,4 @@
-void Tracking()
+void Tracking(int Dis)
 { 
   int i;
   int vector;
@@ -8,19 +8,30 @@ void Tracking()
     pixy.ccc.getBlocks();
     if(pixy.ccc.numBlocks)
     {
-      vector   = map(pixy.ccc.blocks[i].m_x, 0, 316, 210, 0); //210, 0
+      vector   = map(pixy.ccc.blocks[i].m_x, 0, 316, 180, 0); //210, 0
       int area = pixy.ccc.blocks[i].m_width * pixy.ccc.blocks[i].m_height;
-      if(area >= 20000 || area < 0)
+      Serial.println(area);
+      
+      if(area <= Dis) //-13000 2000
       {
         drive(0, 0, 0);
         break;
       }
-      else 
+      else
       {
         drive(150, vector, 0);
       } 
     }      
     else { drive(150, 90, 0); }
   }
-  drive(150, 90, 0);
+  //drive(0, 0, 0);
+  //drive(150, 90, 0);
 }
+
+ /*
+  Blue  = 1
+  Gray  = 2
+  Green = 3
+  Red   = 4
+ */
+ 

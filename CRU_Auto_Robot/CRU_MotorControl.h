@@ -12,8 +12,8 @@ DX Rotate_joint;
 DX Kept_joint;
 /* motor ID */
 #define W1_DRIVE_ID     1
-#define W2_DRIVE_ID     2
-#define W3_DRIVE_ID     3
+#define W2_DRIVE_ID     3
+#define W3_DRIVE_ID     2
 #define Rotate_JOINT_ID 4
 #define Kept_JOINT_ID   5
 /* wheel mode parameter */
